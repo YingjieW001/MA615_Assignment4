@@ -1,0 +1,67 @@
+---
+title: "MA615 Assignment 4 - Task Two"
+author: "Yingjie Wang"
+data: 2021/12/07
+output:
+  pdf_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+options(warn=-1)
+knitr::opts_chunk$set(echo = TRUE)
+
+# install.packages("gutenbergr")
+# install.packages("dplyr")
+# install.packages("tidytext")
+# install required packages
+
+library(gutenbergr)
+library(dplyr)
+library(stringr)
+library(tidytext)
+library(tidyr)
+library(ggplot2) 
+# import required packages
+
+book <- gutenberg_download(66790) # download the book from the gutenberg project
+```
+
+## Sentiment Analysis
+
+After conduct three lexicons, I select "bing" lexicon to conduct the word-level sentiment analysis.
+
+1. The "Afinn" lexicon will return a numeric socre between -5 and 5
+
+2. The "Bing" and "Nrc" lexicons will return a binary class (positive and negative)
+
+Firstly, I indexes all the words in the order along the timeline of the book. Then, I cut them into several ~300 blocks. And I just count the number of positive words and number of negative words separately. Finally, use the difference as the level of sentiment and plot it. 
+
+The data structure utilize to stored the text are list and tibble. 
+
+And the statistic information like count is storead as a new column of tibble..
+
+
+```{r echo=FALSE, include=FALSE}
+tidy_book <- book %>%
+  unnest_tokens(word, text) %>% # split the text into words
+  anti_join(stop_words) %>% # remove stop words
+  group_by(gutenberg_id) %>% 
+  mutate(linenumber = row_number()) %>% # add a column of linenumber
+  ungroup()
+
+book_sentiment <- tidy_book %>%
+  inner_join(get_sentiments("bing")) %>% # use "bing" lexicons
+  count(gutenberg_id, index = linenumber %/% 100, sentiment) %>% # each batch contains 100 lines
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative) # use #positive_words - #negative_words as the level of sentiment
+```
+
+
+```{r echo=FALSE}
+ggplot(book_sentiment, aes(index, sentiment, fill = gutenberg_id)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~"Russian Silhouettes: More Stories of Russian Life", ncol = 1, scales = "free_x")
+# Plot the sentiment analysis.
+```
+

@@ -1,0 +1,58 @@
+---
+title: "MA615 Assignment 4 - Task Three"
+author: "Yingjie Wang"
+data: 2021/12/07
+output:
+  pdf_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+options(warn=-1)
+knitr::opts_chunk$set(echo = TRUE)
+
+# install.packages("tidyverse")
+# install.packages("sentimentr")
+# install required packages
+
+library(tidyverse)
+library(gutenbergr)
+library(sentimentr)
+library(tidytext)
+library(dplyr)
+# import required packages
+
+book_66790 <- gutenberg_download(66790) # download the book from gutenberg project
+```
+
+## Sentiment Analysis
+
+I do try to load my book in test2 number space and fail. I found that I can only see the level 1 "anton/" rather than the level 2 "anton/hw_russian". And the code is in tnum-66790.R. 
+
+So, I produce a sentence-level sentiment analysis using "sentimentr" package.
+
+Sentimentr is also a lexicon-based package. One of the difference is that it can accurately capture the Valence Shifters like Negation that can flip the polarity of a sentence with one word. Like "Hungry" vs. "Not hungry".
+
+By comparing the result of Task Two and Task Three, I firstly make their index consistent with each other, which means the whole book is cut into word level and sentence level separately, but then are both assigned to ~300 blocks. So we can directly compare the result of the both tasks at each index. They do have similarity, like [40-50], [180-220], [130-150]. There are also some reverse result (possibly due to Negation), like [220-240]..
+
+
+```{r echo=FALSE, include=FALSE}
+book_str <- paste(book_66790$text, sep = "")
+
+book_sentiment <- book_str %>%
+  get_sentences() %>%
+  sentiment() %>%
+  filter(!is.na(word_count)) %>%
+  mutate(index = row_number() %/% 40, polarity_level = ifelse(sentiment < -0.2, "negative", ifelse(sentiment > 0.2, "positive", "neutral"))) %>%
+  count(index, polarity_level) %>%
+  spread(polarity_level, n, fill = 0) %>%
+  mutate(polarity_level = positive - negative)
+```
+
+```{r echo=FALSE}
+ggplot(book_sentiment, aes(index, polarity_level, fill = 66790)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~"Russian Silhouettes: More Stories of Russian Life", ncol = 1, scales = "free_x")
+# Plot the sentiment analysis.
+```
+
